@@ -1,4 +1,4 @@
-# Game Indie Journey - [Tên của em]
+# Game Indie Journey - [Daniel]
 
 ## Mục tiêu 30 ngày
 - [x] Ngày 1-4: Love2D cơ bản + game bắt bóng
