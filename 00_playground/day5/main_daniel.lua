@@ -1,3 +1,13 @@
+-- TODO: 
+--[[ function :slow time
+Nếu bắt được bóng: màu xanh dương (tỉ lệ 10%)
+slow 50% tốc độ bóng
+thời gian 3s
+
+	+ khi hết: quay lại về tốc độ lúc bắt đầu hết 3s (x2)
+	+ thêm biến is_blue
+	+ thêm biến free_time
+]]
 
 function love.load()
     -- === PLAYER ===
@@ -46,20 +56,26 @@ function reset_game()
         particles = {}
         shake_timer = 0
 		shake_magnitude = 4 -- cường độ rung (pixel)
+		free_time = 0
+		
         spawn_ball()
 end
 -- ========== 2. HÀM TẠO BÓNG MỚI ==========
 
+
 function spawn_ball()
     local is_golden = love.math.random() < 0.2  -- 20% bóng vàng
-    
+	local is_blue = false
+	if not is_golden then
+		is_blue = love.math.random() < 0.5 -- 50% bóng xanh 
+	end
     local ball = {
         x = love.math.random(50, 750),
         y = 50,
         radius = 15,
         speed_y = base_speed,    -- dùng tốc độ hiện tại
         is_golden = is_golden,
-        
+       	is_blue = is_blue, 
         -- === HIỆU ỨNG NỔ (thêm mới) ===
         -- Khi bắt được bóng, thay vì xóa ngay, bóng sẽ nổ to rồi biến mất
         hit_animation = false,   -- có đang trong trạng thái nổ không?
@@ -70,7 +86,7 @@ function spawn_ball()
     table.insert(balls, ball)
 end
 
-function spawn_particles(x, y, is_golden)
+function spawn_particles(x, y, is_golden, is_blue)
     -- Tạo từ 5 đến 10 hạt bụi
     local num_particles = love.math.random(5, 10)
     
@@ -83,11 +99,9 @@ function spawn_particles(x, y, is_golden)
             vy = love.math.random(-150, -50),  -- vận tốc y (bay lên trên)
             life = 0.5,                         -- sống 0.5 giây
             size = love.math.random(2, 4),      -- kích thước 2-4 pixel
-            
-            -- Màu sắc theo loại bóng
-            r = is_golden and 1 or 0.9,   -- vàng = 1, đỏ = 0.9
-            g = is_golden and 0.8 or 0.2, -- vàng = 0.8, đỏ = 0.2
-            b = is_golden and 0 or 0.2     -- vàng = 0, đỏ = 0.2
+           	r = is_blue and 0 or (is_golden and 1 or 0.9),
+			g = is_blue and 0 or (is_golden and 0.8 or 0.2),
+			b = is_blue and 1 or (is_golden and 0 or 0.2)
         }
         table.insert(particles, particle)
     end
@@ -143,10 +157,10 @@ function love.update(dt)
         -- BÓNG RƠI
         ball.y = ball.y + ball.speed_y * dt
         
-        -- === VA CHẠM VỚI PLAYER ===
+        -- === VA CHẠM VỚI PLAYER === cần check lại chỗ này cho nuột hơn
         if ball.y + ball.radius > player.y and
-           ball.x > player.x and
-           ball.x < player.x + player.width then
+           ball.x + 15 > player.x and
+           ball.x - 15 < player.x + player.width then
             
             -- BẮT ĐƯỢC BÓNG!
             
@@ -162,10 +176,21 @@ function love.update(dt)
             end
             
             -- 2. Tạo particle bụi tại vị trí bóng
-            spawn_particles(ball.x, ball.y, ball.is_golden)
+            spawn_particles(ball.x, ball.y, ball.is_golden, ball.is_blue)
             
-            -- 3. Tăng tốc độ toàn cục
-            base_speed = math.min(base_speed + 10, 800)  -- tối đa 800
+            -- 3. Tăng tốc độ toàn cục or giam toc do
+			if ball.is_blue then
+				free_time = 3
+				base_speed = math.min(base_speed + 10, 800)/2  -- tối đa 800
+			elseif free_time > 0 then
+				base_speed = math.min(base_speed + 10, 800)
+				free_time = free_time - dt
+			elseif free_time == 0 then
+				base_speed = math.min(base_speed + 10, 800)
+			else
+				base_speed = base_speed * 2
+				free_time = 0
+			end
             
             -- 4. Kích hoạt animation nổ cho bóng này
             ball.hit_animation = true
@@ -228,6 +253,9 @@ function love.draw()
             love.graphics.circle("fill", ball.x, ball.y, radius + 3)
             love.graphics.setColor(1, 0.9, 0.2)
             love.graphics.circle("fill", ball.x, ball.y, radius)
+		elseif ball.is_blue then
+            love.graphics.setColor(0, 0, 1)
+            love.graphics.circle("fill", ball.x, ball.y, radius + 3)
         else
             -- Bóng đỏ
             love.graphics.setColor(0.9, 0.2, 0.2)
