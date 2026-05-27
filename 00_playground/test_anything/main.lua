@@ -1,42 +1,26 @@
--- ============================================
--- NGÀY 5: GAME BẮT BÓNG + POWER-UP
--- Đã được chia nhỏ thành các module
--- ============================================
-
--- === LOAD SNIPPETS (code tái sử dụng) ===
 
 package.path = package.path .. ";D:/Daniel/game-indie/snippets/?.lua"
+package.path = package.path .. ";D:/Daniel/game-indie/00_playground/day5/?.lua"
 
-require("shake") -- start_shake(timer, magnitude), begin_shake and end_shake, update_shake(dt)
-require("particle") -- spawn_particles(x,y,r,g,b,count); update_particles(dt); draw_particles()
-require("highscore") -- load_highscore(), save_highscore(score), draw_highscore(x, y)
+require("shake")
+require("particle")
+require("highscore")
+require("ball")
+require("game")
+require("player")
 
---- load module cua game
-require("player") --init_player(); draw_player(); update_player();  
-require("ball") -- spawn_ball(); spawn_powerup(); activate_powerup(); update_magnet_effect(dt); update_slow_time_effect(dt)
-require("game") -- init_game(); update_balls(dt); update_powerups(dt) 
-
--- khoi tao
 function love.load()
-	load_highscore()
-	init_game() -- init_player() spawn_ball() -- okie
-
-	-- load am thanh neu co
-	if love.filesystem.getInfo("sound/powerup.wav") then
-		sound_powerup = love.audio.newSource("sounds/powerup.wav", "static")
-	end
+	init_game()
 end
 
-
--- cap nhat moi frame
 function love.update(dt)
 	if game_over then return end
-	update_player() -- okie
+	update_balls(dt)
+	update_player()
+	update_particles(dt)
+	update_powerups(dt)
 	update_magnet_effect(dt) --okie
 	update_slow_time_effect(dt) -- okie
-	update_balls(dt)
-	update_powerups(dt) -- fixme
-	update_particles(dt) -- fixme
 	update_shake(dt)
 end
 
@@ -62,18 +46,17 @@ function love.draw()
 	-- hien thi trang thai power-up
 	if slow_time_active then
 		love.graphics.setColor(0.2, 0.5, 1)
-		love.graphics.print("Slow time: " .. string.format("%.1f", slow_time_timer) .."s", 10, 60)
+		love.graphics.print("Slow time: " .. string.format("%.1f", slow_time_timer) .."s", 10, 90)
 	end
 
 	if magnet_active then
 		love.graphics.setColor(0.7, 0.2, 1)
-		love.graphics.print("Magnet: " .. string.format("%.1f", magnet_timer) .. "s", 10, 70)
+		love.graphics.print("Magnet: " .. string.format("%.1f", magnet_timer) .. "s", 10, 110)
 		love.graphics.setColor(0.7, 0.2, 1, 0.2)
 		love.graphics.circle("line", get_player_center_x(), player.y, magnet_range)
 	end
 
-	-- game over
-	if game_over then -- okie
+	if game_over then
 		love.graphics.setColor(1, 1, 1)
 		love.graphics.print("GAME OVER", 360, 280)
 		love.graphics.print("Press R to restart", 340, 320)
@@ -83,11 +66,9 @@ function love.draw()
 			love.graphics.print("NEW RECORD!", 355, 380)
 		end
 	end
-
 	end_shake()
 end
 
--- ve bong
 function draw_balls()
 	for _, ball in ipairs(balls) do
 		local radius = ball.radius
